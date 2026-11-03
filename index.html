@@ -2,122 +2,746 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Excel 智能刷题系统</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>智能刷题系统</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
-:root{--bg:#f4f6fb;--card:#fff;--ink:#20283a;--muted:#778198;--blue:#5268df;--line:#e8ebf3;--green:#1c9b68;--red:#d94b59}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Microsoft YaHei",sans-serif}
-header{background:linear-gradient(120deg,#465bd0,#7889f2);color:white;padding:28px 20px}
-.wrap{max-width:920px;margin:auto}header h1{margin:0 0 8px;font-size:25px}header p{margin:0;opacity:.88;font-size:14px}
-main{max-width:920px;margin:24px auto;padding:0 16px}.panel,.question{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 5px 20px #25315b0a}
-.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.upload{display:inline-flex;align-items:center;gap:8px;background:#eef0ff;color:var(--blue);padding:11px 15px;border-radius:10px;font-weight:600;cursor:pointer}
-input[type=file]{display:none}select,button{font:inherit;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:white;color:var(--ink)}
-button{cursor:pointer}button.primary{background:var(--blue);color:white;border-color:var(--blue)}button:disabled{opacity:.45;cursor:not-allowed}
-.status{font-size:13px;color:var(--muted);margin-top:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
-.stat{background:#f7f8fc;border-radius:12px;padding:13px;text-align:center}.stat b{display:block;font-size:22px;color:var(--blue)}.stat span{font-size:12px;color:var(--muted)}
-.qtop{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:13px}.tag{background:#f0f2ff;color:var(--blue);padding:4px 9px;border-radius:20px}
-.question h2{font-size:19px;line-height:1.7;margin:18px 0}.options{display:grid;gap:10px}.option{width:100%;text-align:left;padding:13px 15px;border:1px solid var(--line);border-radius:11px;line-height:1.5;transition:.15s}.option:hover:not(:disabled){border-color:var(--blue);background:#f8f8ff}.option.correct{border-color:var(--green);background:#effaf5;color:#14784f}.option.wrong{border-color:var(--red);background:#fff2f3;color:#b52f40}
-.feedback{margin-top:15px;padding:13px;border-radius:10px;font-size:14px;display:none}.feedback.show{display:block}.feedback.good{background:#effaf5;color:#14784f}.feedback.bad{background:#fff2f3;color:#b52f40}
-.actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}.empty{text-align:center;padding:36px 10px;color:var(--muted)}.empty strong{display:block;color:var(--ink);font-size:18px;margin-bottom:8px}
-.progress{height:7px;background:#edf0f7;border-radius:8px;overflow:hidden;margin-top:14px}.progress div{height:100%;background:var(--blue);width:0;transition:.2s}
-@media(max-width:600px){header h1{font-size:21px}.panel,.question{padding:16px}.question h2{font-size:17px}.stats{gap:7px}.stat{padding:10px 5px}}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f6fb;color:#20283a;font-family:Arial,"Microsoft YaHei",sans-serif}
+header{background:linear-gradient(120deg,#465bd0,#7889f2);color:white;padding:25px 18px}
+header h1{margin:0 0 8px;font-size:24px}
+header p{margin:0;font-size:14px}
+main{max-width:900px;margin:22px auto;padding:0 14px}
+.panel,.question{background:white;border:1px solid #e8ebf3;border-radius:15px;padding:18px;margin-bottom:15px}
+.uploads{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.uploadbox{border:1px dashed #cbd1e5;border-radius:12px;padding:12px;background:#fafbff}
+.uploadbox b{display:block;margin-bottom:10px}
+.uploadbox small{display:block;color:#778198;margin-top:8px}
+input[type=file]{width:100%;font-size:12px}
+.toolbar{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}
+select,button{font:inherit;border:1px solid #e8ebf3;border-radius:9px;padding:10px;background:white;color:#20283a;min-height:42px}
+button{cursor:pointer}
+.primary{background:#5268df;color:white;border-color:#5268df}
+button:disabled{opacity:.45;cursor:not-allowed}
+.status{font-size:13px;color:#778198;margin-top:12px;line-height:1.6}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:15px 0}
+.stat{background:#f7f8fc;border-radius:10px;padding:12px;text-align:center}
+.stat b{display:block;font-size:21px;color:#5268df}
+.stat span{font-size:12px;color:#778198}
+.progress{height:7px;background:#edf0f7;border-radius:8px;overflow:hidden}
+.progress div{height:100%;background:#5268df;width:0}
+.qtop{display:flex;justify-content:space-between;gap:10px;color:#778198;font-size:13px;flex-wrap:wrap}
+.tag{background:#f0f2ff;color:#5268df;padding:5px 9px;border-radius:20px}
+.question h2{font-size:19px;line-height:1.7;margin:18px 0}
+.options{display:grid;gap:10px}
+.option{width:100%;text-align:left;padding:13px;border:1px solid #e8ebf3;border-radius:10px;line-height:1.6;white-space:normal}
+.option.selected{border-color:#5268df;background:#f0f2ff}
+.option.correct{border-color:#1c9b68;background:#effaf5;color:#14784f}
+.option.wrong{border-color:#d94b59;background:#fff2f3;color:#b52f40}
+.feedback{display:none;margin-top:15px;padding:13px;border-radius:10px;font-size:14px;line-height:1.6}
+.feedback.show{display:block}
+.feedback.good{background:#effaf5;color:#14784f}
+.feedback.bad{background:#fff2f3;color:#b52f40}
+.actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
+.empty{text-align:center;padding:35px 10px;color:#778198}
+.empty strong{display:block;color:#20283a;font-size:18px;margin-bottom:8px}
+@media(max-width:650px){
+ header h1{font-size:21px}
+ .uploads{grid-template-columns:1fr}
+ .panel,.question{padding:14px}
+ .question h2{font-size:17px}
+ .toolbar select,.toolbar button{flex:1 1 42%}
+ .toolbar button{flex-basis:100%}
+ .actions button{flex:1}
+}
+/* 移动端适配 */
+@media screen and (max-width: 650px) {
+
+    body {
+        font-size: 15px;
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    header {
+        padding: 22px 16px;
+    }
+
+    header h1 {
+        font-size: 21px;
+    }
+
+    main {
+        margin: 12px auto;
+        padding: 0 10px;
+    }
+
+    .panel, .question {
+        padding: 14px;
+        border-radius: 13px;
+    }
+
+    /* 三种题库上传区域 */
+    .uploads {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .uploadbox {
+        padding: 14px;
+    }
+
+    .uploadbox input[type=file] {
+        width: 100%;
+        min-height: 42px;
+        font-size: 14px;
+    }
+
+    /* 筛选区域 */
+    .toolbar {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+    }
+
+    .toolbar select,
+    .toolbar button {
+        width: 100%;
+        min-width: 0;
+        min-height: 46px;
+        font-size: 14px;
+    }
+
+    #start {
+        grid-column: 1 / -1;
+    }
+
+    /* 题目 */
+    .question h2 {
+        font-size: 18px;
+        line-height: 1.8;
+        margin: 18px 0;
+        overflow-wrap: anywhere;
+    }
+
+    /* 选项按钮 */
+    .options {
+        gap: 12px;
+    }
+
+    .option {
+        min-height: 50px;
+        padding: 13px;
+        font-size: 15px;
+        border-radius: 11px;
+        touch-action: manipulation;
+    }
+
+    /* 统计 */
+    .stats {
+        gap: 6px;
+    }
+
+    .stat {
+        padding: 10px 3px;
+    }
+
+    .stat b {
+        font-size: 19px;
+    }
+
+    .stat span {
+        font-size: 11px;
+    }
+
+    /* 底部操作 */
+    .actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .actions button {
+        flex: 1;
+        min-height: 48px;
+        font-size: 14px;
+    }
+
+    .feedback {
+        font-size: 14px;
+        line-height: 1.8;
+    }
+}
+
+/* 小屏手机 */
+@media screen and (max-width: 380px) {
+
+    .toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    #start {
+        grid-column: auto;
+    }
+
+    .question h2 {
+        font-size: 16px;
+    }
+}
 </style>
 </head>
 <body>
-<header><div class="wrap"><h1>📚 Excel 智能刷题系统</h1><p>导入你的 Excel 题库，随时开始练习、检查答案和整理错题。</p></div></header>
+
+<header>
+ <h1>📚 智能刷题系统</h1>
+ <p>支持单选题、多选题、判断题，上传 Excel 即可练习。</p>
+</header>
+
 <main>
 <section class="panel">
+
+ <div class="uploads">
+  <div class="uploadbox">
+   <b>① 单项选择题</b>
+   <input id="singleFile" type="file" accept=".xlsx,.xls">
+   <small id="singleStatus">尚未导入</small>
+  </div>
+
+  <div class="uploadbox">
+   <b>② 多项选择题</b>
+   <input id="multiFile" type="file" accept=".xlsx,.xls">
+   <small id="multiStatus">尚未导入</small>
+  </div>
+
+  <div class="uploadbox">
+   <b>③ 判断题</b>
+   <input id="judgeFile" type="file" accept=".xlsx,.xls">
+   <small id="judgeStatus">尚未导入</small>
+  </div>
+ </div>
+
+ <div class="status">
+  三种题型分别上传 Excel 文件。多选题支持 ABC、ACD 等答案格式，选项数量不限。判断题答案支持 √ 和 ×。
+ </div>
+
  <div class="toolbar">
-  <label class="upload">📂 选择 Excel 题库<input id="file" type="file" accept=".xlsx,.xls"></label>
-  <select id="chapter" disabled><option value="">全部章节</option></select>
-  <select id="difficulty" disabled><option value="">全部难度</option><option>易</option><option>中</option><option>难</option></select>
-  <select id="mode" disabled><option value="all">全部题目</option><option value="wrong">只练错题</option></select>
+  <select id="typeFilter">
+   <option value="">全部题型</option>
+   <option value="single">单选题</option>
+   <option value="multi">多选题</option>
+   <option value="judge">判断题</option>
+  </select>
+
+  <select id="chapter" disabled>
+   <option value="">全部章节</option>
+  </select>
+
+  <select id="difficulty" disabled>
+   <option value="">全部难度</option>
+   <option>易</option>
+   <option>中</option>
+   <option>难</option>
+  </select>
+
+  <select id="mode" disabled>
+   <option value="all">全部题目</option>
+   <option value="wrong">只练错题</option>
+  </select>
+
   <button id="start" class="primary" disabled>开始练习</button>
  </div>
- <div class="status" id="status">请上传 .xlsx 或 .xls 格式的题库。题目将在本地浏览器中读取。</div>
+
+ <div class="status" id="status">请先导入题库。</div>
+
  <div class="stats">
   <div class="stat"><b id="total">0</b><span>题库题目</span></div>
   <div class="stat"><b id="done">0</b><span>已答题目</span></div>
   <div class="stat"><b id="accuracy">0%</b><span>正确率</span></div>
  </div>
+
  <div class="progress"><div id="bar"></div></div>
 </section>
+
 <section class="question" id="quiz">
- <div class="empty"><strong>准备好开始了吗？</strong>先上传你的 Excel 题库，系统会自动识别题目和答案。</div>
+ <div class="empty">
+  <strong>等待导入题库</strong>
+  选择 Excel 文件后即可开始练习。
+ </div>
 </section>
 </main>
+
 <script>
 const $=id=>document.getElementById(id);
-let bank=[],pool=[],index=0,answered=new Map(),wrong=new Set(),current=null;
-const norm=v=>String(v??"").trim();
-function pick(row,names){for(const n of names){if(row[n]!==undefined&&norm(row[n])!=="")return row[n]}return ""}
-function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
-$("file").addEventListener("change",async e=>{
- const f=e.target.files[0];if(!f)return;
- try{
-  const data=await f.arrayBuffer(),wb=XLSX.read(data,{type:"array"});
-  let rows=[];
-  for(const name of wb.SheetNames){
-   const sheet=wb.Sheets[name];if(!sheet||!sheet["!ref"])continue;
-   const list=XLSX.utils.sheet_to_json(sheet,{defval:""});
-   if(list.length&&list.some(r=>("题干" in r)||("题目" in r))){rows=list;break}
-  }
-  if(!rows.length)throw new Error("没有找到包含“题干”或“题目”列的工作表。请检查第一行是否为字段名称。");
-  bank=rows.map((r,i)=>({
-   id:norm(pick(r,["题号","编号"]))||String(i+1),
-   q:norm(pick(r,["题干","题目","问题"])),
-   A:norm(r.A),B:norm(r.B),C:norm(r.C),D:norm(r.D),
-   answer:norm(pick(r,["答案","正确答案"])).toUpperCase().replace(/[.。]/g,""),
-   difficulty:norm(pick(r,["难度"])),chapter:norm(pick(r,["节点名","章节"])),
-   hidden:norm(pick(r,["是否屏蔽"]))
-  })).filter(q=>q.q&&q.A&&q.B&&q.C&&q.D&&["A","B","C","D"].includes(q.answer)&&q.hidden!=="是");
-  if(!bank.length)throw new Error("读取到了表格，但没有找到有效题目。请确认题目、A-D选项和答案列。");
-  wrong.clear();answered.clear();
-  const chapters=[...new Set(bank.map(q=>q.chapter).filter(Boolean))].sort();
-  $("chapter").innerHTML='<option value="">全部章节</option>'+chapters.map(c=>`<option>${escapeHtml(c)}</option>`).join("");
-  ["chapter","difficulty","mode","start"].forEach(id=>$(id).disabled=false);
-  $("total").textContent=bank.length;$("done").textContent="0";$("accuracy").textContent="0%";
-  $("status").textContent=`已读取 ${f.name}，共识别 ${bank.length} 道有效题目。`;
-  $("quiz").innerHTML='<div class="empty"><strong>题库加载成功！</strong>选择章节和难度，然后点击“开始练习”。</div>';
- }catch(err){$("status").textContent="读取失败："+err.message}
-});
-function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-$("start").onclick=()=>{
- let list=bank.filter(q=>(!$("chapter").value||q.chapter===$("chapter").value)&&(!$("difficulty").value||q.difficulty===$("difficulty").value)&&($("mode").value!=="wrong"||wrong.has(q.id)));
- if(!list.length){$("quiz").innerHTML='<div class="empty"><strong>当前没有可练习的题目</strong>可能筛选条件下没有题目，或者还没有错题记录。</div>';return}
- pool=shuffle(list);index=0;render();
+
+let bank=[];
+let pool=[];
+let index=0;
+let answered=new Map();
+let wrong=new Set();
+let current=null;
+let selected=new Set();
+
+const labels={
+ single:"单选题",
+ multi:"多选题",
+ judge:"判断题"
 };
+
+function norm(v){
+ return String(v??"").trim();
+}
+
+function pick(row,keys){
+ for(const k of keys){
+  if(row[k]!==undefined&&norm(row[k])!==""){
+   return row[k];
+  }
+ }
+ return "";
+}
+
+function esc(s){
+ return String(s).replace(/[&<>"']/g,c=>({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+ }[c]));
+}
+
+function getOptions(row){
+ return Object.keys(row)
+ .map(k=>k.trim())
+ .filter(k=>/^[A-Z]$/.test(k)&&norm(row[k]))
+ .sort()
+ .map(k=>({key:k,text:norm(row[k])}));
+}
+
+function judgeAnswer(value) {
+    let a = norm(value).toUpperCase();
+
+    if (["Y", "YES", "TRUE", "1"].includes(a)) {
+        return "Y";
+    }
+
+    if (["N", "NO", "FALSE", "0"].includes(a)) {
+        return "N";
+    }
+
+    return "";
+}
+
+async function loadFile(inputId,type,statusId){
+
+ const file=$(inputId).files[0];
+ if(!file)return;
+
+ try{
+
+  if(typeof XLSX==="undefined"){
+   throw Error("Excel解析组件加载失败，请检查网络。");
+  }
+
+  const workbook=XLSX.read(
+   await file.arrayBuffer(),
+   {type:"array"}
+  );
+
+  let rows=[];
+
+  for(const name of workbook.SheetNames){
+   const sheet=workbook.Sheets[name];
+
+   if(!sheet||!sheet["!ref"])continue;
+
+   const data=XLSX.utils.sheet_to_json(
+    sheet,{defval:""}
+   );
+
+   if(data.length){
+    rows=data;
+    break;
+   }
+  }
+
+  if(!rows.length){
+   throw Error("没有读取到有效数据。");
+  }
+
+  const parsed=rows.map((row,i)=>{
+
+   const q={
+    id:type+"-"+norm(pick(row,["题号","编号","序号"])),
+    type:type,
+    q:norm(pick(row,["题干","题目","问题"])),
+    difficulty:norm(pick(row,["难度"])),
+    chapter:norm(pick(row,["节点名","章节"])),
+    hidden:norm(pick(row,["是否屏蔽"]))
+   };
+
+   if(q.id===type+"-"){
+    q.id=type+"-"+(i+1);
+   }
+
+   if(type==="single"||type==="multi"){
+
+    q.options=getOptions(row);
+
+    let answer=norm(
+     pick(row,["答案","正确答案"])
+    ).toUpperCase().replace(/[^A-Z]/g,"");
+
+    q.answer=type==="single"
+     ?answer
+     :[...new Set(answer)].sort().join("");
+
+    if(q.options.length<2)return null;
+
+    if(!q.answer)return null;
+
+    if([...q.answer].some(a=>
+     !q.options.some(o=>o.key===a)
+    )){
+     return null;
+    }
+
+   }else{
+
+    q.options = [
+      {key: "Y", text: "正确"},
+      {key: "N", text: "错误"}
+    ];
+
+    q.answer = judgeAnswer(
+      pick(row, ["答案", "正确答案"])
+    );
+
+    if (!["Y", "N"].includes(q.answer)) {
+      return null;
+    }
+   }
+
+   if(!q.q||q.hidden==="是")return null;
+
+   return q;
+
+  }).filter(Boolean);
+
+  if(!parsed.length){
+   throw Error(
+    "没有识别到有效题目，请检查题干、选项和答案列。"
+   );
+  }
+
+  // 替换该题型的旧题库
+  bank=bank.filter(q=>q.type!==type).concat(parsed);
+
+  // 更新章节
+  const chapters=[
+   ...new Set(bank.map(q=>q.chapter).filter(Boolean))
+  ].sort();
+
+  $("chapter").innerHTML=
+   '<option value="">全部章节</option>'+
+   chapters.map(c=>
+    `<option value="${esc(c)}">${esc(c)}</option>`
+   ).join("");
+
+  // 更新统计
+  $("total").textContent=bank.length;
+
+  $("singleStatus").textContent=
+   `已导入 ${bank.filter(q=>q.type==="single").length} 题`;
+
+  $("multiStatus").textContent=
+   `已导入 ${bank.filter(q=>q.type==="multi").length} 题`;
+
+  $("judgeStatus").textContent=
+   `已导入 ${bank.filter(q=>q.type==="judge").length} 题`;
+
+  ["chapter","difficulty","mode","start"]
+   .forEach(id=>$(id).disabled=false);
+
+  $("status").textContent=
+   `题库加载成功！共 ${bank.length} 道题目。`;
+
+  answered.clear();
+  wrong.clear();
+
+ }catch(error){
+
+  $(statusId).textContent="导入失败";
+  $("status").textContent="读取失败："+error.message;
+
+ }
+}
+
+$("singleFile").onchange=()=>
+ loadFile("singleFile","single","singleStatus");
+
+$("multiFile").onchange=()=>
+ loadFile("multiFile","multi","multiStatus");
+
+$("judgeFile").onchange=()=>
+ loadFile("judgeFile","judge","judgeStatus");
+
+function shuffle(arr){
+ let a=[...arr];
+
+ for(let i=a.length-1;i>0;i--){
+  let j=Math.floor(Math.random()*(i+1));
+  [a[i],a[j]]=[a[j],a[i]];
+ }
+
+ return a;
+}
+
+$("start").onclick=()=>{
+
+ const list=bank.filter(q=>
+  (!$("typeFilter").value||
+   q.type===$("typeFilter").value)&&
+
+  (!$("chapter").value||
+   q.chapter===$("chapter").value)&&
+
+  (!$("difficulty").value||
+   q.difficulty===$("difficulty").value)&&
+
+  ($("mode").value!=="wrong"||wrong.has(q.id))
+ );
+
+ if(!list.length){
+  $("quiz").innerHTML=
+   '<div class="empty"><strong>没有可练习的题目</strong>请调整筛选条件。</div>';
+  return;
+ }
+
+ pool=shuffle(list);
+ index=0;
+ render();
+};
+
 function render(){
- if(index>=pool.length){$("quiz").innerHTML=`<div class="empty"><strong>本轮练习完成！🎉</strong>本轮共 ${pool.length} 题。正确 ${pool.filter(q=>answered.get(q.id)==="correct").length} 题，答错 ${pool.filter(q=>answered.get(q.id)==="wrong").length} 题。<br><br><button class="primary" onclick="restart()">再练一轮</button></div>`;return}
- current=pool[index];const q=current,old=answered.get(q.id);
+
+ if(index>=pool.length){
+
+  $("quiz").innerHTML=`
+   <div class="empty">
+    <strong>本轮练习完成！🎉</strong>
+    共 ${pool.length} 题。
+    <br><br>
+    <button class="primary" onclick="restart()">再练一轮</button>
+   </div>`;
+
+  return;
+ }
+
+ current=pool[index];
+ selected=new Set();
+
+ const q=current;
+ const old=answered.get(q.id);
+
  $("quiz").innerHTML=`
- <div class="qtop"><span>第 ${index+1} / ${pool.length} 题 · 题号 ${escapeHtml(q.id)}</span><span class="tag">${escapeHtml(q.difficulty||"未标难度")} ${q.chapter?"· "+escapeHtml(q.chapter):""}</span></div>
- <h2>${escapeHtml(q.q)}</h2>
- <div class="options">${["A","B","C","D"].map(k=>`<button class="option" data-key="${k}" ${old?"disabled":""}>${k}. ${escapeHtml(q[k])}</button>`).join("")}</div>
- <div class="feedback ${old?"show "+(old==="correct"?"good":"bad"):""}" id="feedback">${old?(old==="correct"?"回答正确！":"回答错误。正确答案是 "+q.answer+"。"):""}</div>
- <div class="actions"><button onclick="prev()" ${index===0?"disabled":""}>上一题</button><button class="primary" id="next" onclick="next()">${index===pool.length-1?"完成练习":"下一题"}</button></div>`;
- document.querySelectorAll(".option").forEach(btn=>btn.onclick=()=>choose(btn.dataset.key));
- if(old)mark(q.answer);
+
+ <div class="qtop">
+  <span>
+   ${labels[q.type]} · 第 ${index+1}/${pool.length} 题
+  </span>
+  <span class="tag">
+   ${esc(q.difficulty||"未标难度")}
+   ${q.chapter?" · "+esc(q.chapter):""}
+  </span>
+ </div>
+
+ <h2>${esc(q.q)}</h2>
+
+ <div class="options">
+  ${q.options.map(o=>`
+   <button class="option"
+    data-key="${esc(o.key)}"
+    ${old?"disabled":""}>
+    ${esc(o.key)}. ${esc(o.text)}
+   </button>
+  `).join("")}
+ </div>
+
+ ${q.type==="multi"&&!old?
+  '<div class="status">多选题：可以选择多个选项，选择完成后点击确认答案。</div>'
+  :""}
+
+ <div class="feedback ${
+  old?"show "+(old==="correct"?"good":"bad"):""
+ }" id="feedback">
+  ${old?(old==="correct"?"回答正确！":"回答错误，正确答案是 "+esc(q.answer)):""}
+ </div>
+
+ <div class="actions">
+  <button onclick="prev()" ${index===0?"disabled":""}>
+   上一题
+  </button>
+
+  ${q.type==="multi"&&!old?
+   '<button class="primary" id="submitAnswer">确认答案</button>'
+   :""}
+
+  <button class="primary" onclick="next()">
+   ${index===pool.length-1?"完成练习":"下一题"}
+  </button>
+ </div>
+ `;
+
+ document.querySelectorAll(".option").forEach(btn=>{
+  btn.onclick=()=>choose(btn.dataset.key);
+ });
+
+ if(q.type==="multi"&&!old){
+  $("submitAnswer").onclick=submitMulti;
+ }
+
+ if(old){
+  showMarked(q);
+ }
+
  updateStats();
 }
-function mark(ans){document.querySelectorAll(".option").forEach(b=>{if(b.dataset.key===ans)b.classList.add("correct");});}
+
 function choose(key){
+
  if(answered.has(current.id))return;
- const ok=key===current.answer;answered.set(current.id,ok?"correct":"wrong");
- if(!ok)wrong.add(current.id);
- document.querySelectorAll(".option").forEach(b=>{b.disabled=true;if(b.dataset.key===current.answer)b.classList.add("correct");if(b.dataset.key===key&&!ok)b.classList.add("wrong")});
- const f=$("feedback");f.className="feedback show "+(ok?"good":"bad");f.textContent=ok?"回答正确！":"回答错误。正确答案是 "+current.answer+"。";
+
+ if(current.type==="multi"){
+
+  if(selected.has(key)){
+   selected.delete(key);
+  }else{
+   selected.add(key);
+  }
+
+  document.querySelectorAll(".option").forEach(btn=>{
+   btn.classList.toggle(
+    "selected",
+    selected.has(btn.dataset.key)
+   );
+  });
+
+  return;
+ }
+
+ judge([key]);
+}
+
+function submitMulti(){
+
+ if(!selected.size){
+  $("feedback").className="feedback show bad";
+  $("feedback").textContent="请至少选择一个选项。";
+  return;
+ }
+
+ judge([...selected].sort());
+}
+
+function judge(keys){
+
+ const q=current;
+ const chosen=keys.join("");
+
+ const correct=q.type==="multi"
+  ?chosen===q.answer
+  :chosen===q.answer;
+
+ answered.set(
+  q.id,
+  correct?"correct":"wrong"
+ );
+
+ if(!correct)wrong.add(q.id);
+
+ document.querySelectorAll(".option").forEach(btn=>{
+
+  btn.disabled=true;
+
+  const key=btn.dataset.key;
+
+  if(q.answer.includes(key)){
+   btn.classList.add("correct");
+  }
+
+  if(keys.includes(key)&&!q.answer.includes(key)){
+   btn.classList.add("wrong");
+  }
+
+ });
+
+ const feedback=$("feedback");
+
+ feedback.className=
+  "feedback show "+(correct?"good":"bad");
+
+ feedback.textContent=correct
+  ?"回答正确！"
+  :"回答错误。正确答案是 "+q.answer+"。";
+
  updateStats();
 }
-function updateStats(){
- const values=[...answered.values()],correct=values.filter(v=>v==="correct").length;
- $("done").textContent=values.length;$("accuracy").textContent=(values.length?Math.round(correct/values.length*100):0)+"%";
- $("bar").style.width=(pool.length?index/pool.length*100:0)+"%";
+
+function showMarked(q){
+
+ document.querySelectorAll(".option").forEach(btn=>{
+
+  btn.disabled=true;
+
+  if(q.answer.includes(btn.dataset.key)){
+   btn.classList.add("correct");
+  }
+
+ });
+
 }
-function next(){if(index<pool.length-1){index++;render()}else{index++;render()}}
-function prev(){if(index>0){index--;render()}}
-function restart(){ $("start").click() }
+
+function updateStats(){
+
+ const values=[...answered.values()];
+
+ const correct=values.filter(
+  v=>v==="correct"
+ ).length;
+
+ $("done").textContent=values.length;
+
+ $("accuracy").textContent=
+  (values.length
+   ?Math.round(correct/values.length*100)
+   :0)+"%";
+
+ $("bar").style.width=
+  (pool.length
+   ?Math.min(index+(answered.has(current?.id)?1:0),pool.length)/pool.length*100
+   :0)+"%";
+}
+
+function next(){
+ if(index<pool.length-1){
+  index++;
+  render();
+ }else{
+  index++;
+  render();
+ }
+}
+
+function prev(){
+ if(index>0){
+  index--;
+  render();
+ }
+}
+
+function restart(){
+ $("start").click();
+}
+
 </script>
 </body>
 </html>
