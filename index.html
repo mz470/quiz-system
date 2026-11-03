@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Excel 智能刷题系统</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#20283a;--muted:#778198;--blue:#5268df;--line:#e8ebf3;--green:#1c9b68;--red:#d94b59}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Microsoft YaHei",sans-serif}
+header{background:linear-gradient(120deg,#465bd0,#7889f2);color:white;padding:28px 20px}
+.wrap{max-width:920px;margin:auto}header h1{margin:0 0 8px;font-size:25px}header p{margin:0;opacity:.88;font-size:14px}
+main{max-width:920px;margin:24px auto;padding:0 16px}.panel,.question{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 5px 20px #25315b0a}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.upload{display:inline-flex;align-items:center;gap:8px;background:#eef0ff;color:var(--blue);padding:11px 15px;border-radius:10px;font-weight:600;cursor:pointer}
+input[type=file]{display:none}select,button{font:inherit;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:white;color:var(--ink)}
+button{cursor:pointer}button.primary{background:var(--blue);color:white;border-color:var(--blue)}button:disabled{opacity:.45;cursor:not-allowed}
+.status{font-size:13px;color:var(--muted);margin-top:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+.stat{background:#f7f8fc;border-radius:12px;padding:13px;text-align:center}.stat b{display:block;font-size:22px;color:var(--blue)}.stat span{font-size:12px;color:var(--muted)}
+.qtop{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:13px}.tag{background:#f0f2ff;color:var(--blue);padding:4px 9px;border-radius:20px}
+.question h2{font-size:19px;line-height:1.7;margin:18px 0}.options{display:grid;gap:10px}.option{width:100%;text-align:left;padding:13px 15px;border:1px solid var(--line);border-radius:11px;line-height:1.5;transition:.15s}.option:hover:not(:disabled){border-color:var(--blue);background:#f8f8ff}.option.correct{border-color:var(--green);background:#effaf5;color:#14784f}.option.wrong{border-color:var(--red);background:#fff2f3;color:#b52f40}
+.feedback{margin-top:15px;padding:13px;border-radius:10px;font-size:14px;display:none}.feedback.show{display:block}.feedback.good{background:#effaf5;color:#14784f}.feedback.bad{background:#fff2f3;color:#b52f40}
+.actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}.empty{text-align:center;padding:36px 10px;color:var(--muted)}.empty strong{display:block;color:var(--ink);font-size:18px;margin-bottom:8px}
+.progress{height:7px;background:#edf0f7;border-radius:8px;overflow:hidden;margin-top:14px}.progress div{height:100%;background:var(--blue);width:0;transition:.2s}
+@media(max-width:600px){header h1{font-size:21px}.panel,.question{padding:16px}.question h2{font-size:17px}.stats{gap:7px}.stat{padding:10px 5px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>📚 Excel 智能刷题系统</h1><p>导入你的 Excel 题库，随时开始练习、检查答案和整理错题。</p></div></header>
+<main>
+<section class="panel">
+ <div class="toolbar">
+  <label class="upload">📂 选择 Excel 题库<input id="file" type="file" accept=".xlsx,.xls"></label>
+  <select id="chapter" disabled><option value="">全部章节</option></select>
+  <select id="difficulty" disabled><option value="">全部难度</option><option>易</option><option>中</option><option>难</option></select>
+  <select id="mode" disabled><option value="all">全部题目</option><option value="wrong">只练错题</option></select>
+  <button id="start" class="primary" disabled>开始练习</button>
+ </div>
+ <div class="status" id="status">请上传 .xlsx 或 .xls 格式的题库。题目将在本地浏览器中读取。</div>
+ <div class="stats">
+  <div class="stat"><b id="total">0</b><span>题库题目</span></div>
+  <div class="stat"><b id="done">0</b><span>已答题目</span></div>
+  <div class="stat"><b id="accuracy">0%</b><span>正确率</span></div>
+ </div>
+ <div class="progress"><div id="bar"></div></div>
+</section>
+<section class="question" id="quiz">
+ <div class="empty"><strong>准备好开始了吗？</strong>先上传你的 Excel 题库，系统会自动识别题目和答案。</div>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+let bank=[],pool=[],index=0,answered=new Map(),wrong=new Set(),current=null;
+const norm=v=>String(v??"").trim();
+function pick(row,names){for(const n of names){if(row[n]!==undefined&&norm(row[n])!=="")return row[n]}return ""}
+function shuffle(a){let b=[...a];for(let i=b.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+$("file").addEventListener("change",async e=>{
+ const f=e.target.files[0];if(!f)return;
+ try{
+  const data=await f.arrayBuffer(),wb=XLSX.read(data,{type:"array"});
+  let rows=[];
+  for(const name of wb.SheetNames){
+   const sheet=wb.Sheets[name];if(!sheet||!sheet["!ref"])continue;
+   const list=XLSX.utils.sheet_to_json(sheet,{defval:""});
+   if(list.length&&list.some(r=>("题干" in r)||("题目" in r))){rows=list;break}
+  }
+  if(!rows.length)throw new Error("没有找到包含“题干”或“题目”列的工作表。请检查第一行是否为字段名称。");
+  bank=rows.map((r,i)=>({
+   id:norm(pick(r,["题号","编号"]))||String(i+1),
+   q:norm(pick(r,["题干","题目","问题"])),
+   A:norm(r.A),B:norm(r.B),C:norm(r.C),D:norm(r.D),
+   answer:norm(pick(r,["答案","正确答案"])).toUpperCase().replace(/[.。]/g,""),
+   difficulty:norm(pick(r,["难度"])),chapter:norm(pick(r,["节点名","章节"])),
+   hidden:norm(pick(r,["是否屏蔽"]))
+  })).filter(q=>q.q&&q.A&&q.B&&q.C&&q.D&&["A","B","C","D"].includes(q.answer)&&q.hidden!=="是");
+  if(!bank.length)throw new Error("读取到了表格，但没有找到有效题目。请确认题目、A-D选项和答案列。");
+  wrong.clear();answered.clear();
+  const chapters=[...new Set(bank.map(q=>q.chapter).filter(Boolean))].sort();
+  $("chapter").innerHTML='<option value="">全部章节</option>'+chapters.map(c=>`<option>${escapeHtml(c)}</option>`).join("");
+  ["chapter","difficulty","mode","start"].forEach(id=>$(id).disabled=false);
+  $("total").textContent=bank.length;$("done").textContent="0";$("accuracy").textContent="0%";
+  $("status").textContent=`已读取 ${f.name}，共识别 ${bank.length} 道有效题目。`;
+  $("quiz").innerHTML='<div class="empty"><strong>题库加载成功！</strong>选择章节和难度，然后点击“开始练习”。</div>';
+ }catch(err){$("status").textContent="读取失败："+err.message}
+});
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+$("start").onclick=()=>{
+ let list=bank.filter(q=>(!$("chapter").value||q.chapter===$("chapter").value)&&(!$("difficulty").value||q.difficulty===$("difficulty").value)&&($("mode").value!=="wrong"||wrong.has(q.id)));
+ if(!list.length){$("quiz").innerHTML='<div class="empty"><strong>当前没有可练习的题目</strong>可能筛选条件下没有题目，或者还没有错题记录。</div>';return}
+ pool=shuffle(list);index=0;render();
+};
+function render(){
+ if(index>=pool.length){$("quiz").innerHTML=`<div class="empty"><strong>本轮练习完成！🎉</strong>本轮共 ${pool.length} 题。正确 ${pool.filter(q=>answered.get(q.id)==="correct").length} 题，答错 ${pool.filter(q=>answered.get(q.id)==="wrong").length} 题。<br><br><button class="primary" onclick="restart()">再练一轮</button></div>`;return}
+ current=pool[index];const q=current,old=answered.get(q.id);
+ $("quiz").innerHTML=`
+ <div class="qtop"><span>第 ${index+1} / ${pool.length} 题 · 题号 ${escapeHtml(q.id)}</span><span class="tag">${escapeHtml(q.difficulty||"未标难度")} ${q.chapter?"· "+escapeHtml(q.chapter):""}</span></div>
+ <h2>${escapeHtml(q.q)}</h2>
+ <div class="options">${["A","B","C","D"].map(k=>`<button class="option" data-key="${k}" ${old?"disabled":""}>${k}. ${escapeHtml(q[k])}</button>`).join("")}</div>
+ <div class="feedback ${old?"show "+(old==="correct"?"good":"bad"):""}" id="feedback">${old?(old==="correct"?"回答正确！":"回答错误。正确答案是 "+q.answer+"。"):""}</div>
+ <div class="actions"><button onclick="prev()" ${index===0?"disabled":""}>上一题</button><button class="primary" id="next" onclick="next()">${index===pool.length-1?"完成练习":"下一题"}</button></div>`;
+ document.querySelectorAll(".option").forEach(btn=>btn.onclick=()=>choose(btn.dataset.key));
+ if(old)mark(q.answer);
+ updateStats();
+}
+function mark(ans){document.querySelectorAll(".option").forEach(b=>{if(b.dataset.key===ans)b.classList.add("correct");});}
+function choose(key){
+ if(answered.has(current.id))return;
+ const ok=key===current.answer;answered.set(current.id,ok?"correct":"wrong");
+ if(!ok)wrong.add(current.id);
+ document.querySelectorAll(".option").forEach(b=>{b.disabled=true;if(b.dataset.key===current.answer)b.classList.add("correct");if(b.dataset.key===key&&!ok)b.classList.add("wrong")});
+ const f=$("feedback");f.className="feedback show "+(ok?"good":"bad");f.textContent=ok?"回答正确！":"回答错误。正确答案是 "+current.answer+"。";
+ updateStats();
+}
+function updateStats(){
+ const values=[...answered.values()],correct=values.filter(v=>v==="correct").length;
+ $("done").textContent=values.length;$("accuracy").textContent=(values.length?Math.round(correct/values.length*100):0)+"%";
+ $("bar").style.width=(pool.length?index/pool.length*100:0)+"%";
+}
+function next(){if(index<pool.length-1){index++;render()}else{index++;render()}}
+function prev(){if(index>0){index--;render()}}
+function restart(){ $("start").click() }
+</script>
+</body>
+</html>
